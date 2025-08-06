@@ -70,7 +70,7 @@ def main():
             '고등 여': high_woman,
             '후기 남': univ_man,
             '후기 여': univ_woman,
-            #'기록일시': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            '기록일시': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }])
 
         # 파일이 존재하면 이어쓰기, 없으면 새로 쓰기

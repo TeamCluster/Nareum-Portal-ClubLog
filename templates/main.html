@@ -6,71 +6,109 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/club-diary.css') }}">
 
 <div class="form-container">
-    <h2>동아리 활동일지</h2>
+    <h2>나름청소년활동센터 동아리 활동일지</h2>
 	<form action="/" method="POST">
-    	<label for="category">동아리 분야:</label>
-    	<input type="text" id="category" name="category" readonly><br>
+    <label for="category">&gt;동아리 분야</label>
+    <input type="text" id="category" name="category" placeholder="동아리 이름을 선택하면 자동으로 표시돼요" readonly><br>
     	
-    	<label for="club-name">동아리 명:</label>
-    	<select id="club-name" name="club_name" required>
-        <option value="" disabled selected>선택해주십시오</option>
-    		{% for name in club_names %}
-        		<option value="{{ name }}">{{ name }}</option>
-    		{% endfor %}
-    	</select><br>
+    <label for="club-name">&gt;동아리 명</label>
+    <select id="club-name" name="club_name" required>
+      <option value="" disabled selected>동아리를 골라주세요</option>
+    	{% for name in club_names %}
+     		<option value="{{ name }}">{{ name }}</option>
+    	{% endfor %}
+    </select><br>
 		
-		<label>활동 일자:</label>
-		<div class="form-section">
-        	<input type="number" name="activity_year" placeholder="YYYY" required>
-        	<input type="number" name="activity_month" placeholder="MM" required>
-        	<input type="number" name="activity_day" placeholder="DD" required>
+		<label>&gt;활동 일자</label>
+    <div class="form-section">
+      <input type="number" id="activity_year" name="activity_year" placeholder="YYYY" min="1945" required>
+      <input type="number" id="activity_month" name="activity_month" placeholder="MM" min="1" max="12" required>
+      <input type="number" id="activity_day" name="activity_day" placeholder="DD" min="1" max="31" required>
+    </div>
+
+    <label>&gt;활동 시간</label>
+    <div class="form-more">
+      <div class="form-row">
+        <div class="form-box">
+          <label>시작 시각</label>
+	  	    <div class="form-section">
+            <input type="number" min="00" max="24" name="start_hour" placeholder="09" required> <p>:</p>
+            <input type="number" min="00" max="59" name="start_minute" placeholder="MM" value="00" required>
+          </div>
+        </div>
+        <p>~</p>
+        <div class="form-box">
+          <label>종료 시각</label>
+		      <div class="form-section">
+            <input type="number" min="00" max="24" name="end_hour" placeholder="18" required> <p>:</p>
+            <input type="number" min="00" max="59" name="end_minute" placeholder="MM" value="00" required>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <label>&gt;참여자 (쉼표로 구분)</label>
+    <input type="text" name="participants" placeholder="캡튼 안, 미세스 강, 미스터 규, 매니저 홍" required><br>
+
+    <label>&gt;연령 별 참여자 수</label>
+    <div class="form-more">
+      <div class="form-row">
+        <div class="form-box">
+          <label>초등 남:</label>
+          <input type="number" min="0" name="element_man" value="0">
         </div>
 
-        <label>시작 시간:</label>
-        <input type="number" name="start_hour" placeholder="HH" required> :
-        <input type="number" name="start_minute" placeholder="MM" required>
-        <br>
+        <div class="form-box">
+          <label>초등 여:</label>
+          <input type="number" min="0" name="element_woman" value="0">
+        </div>
+      </div>
 
-        <label>종료 시간:</label>
-        <input type="number" name="end_hour" placeholder="HH" required> :
-        <input type="number" name="end_minute" placeholder="MM" required>
-        <br>
+      <div class="form-row">
+        <div class="form-box">
+          <label>중등 남:</label>
+          <input type="number" min="0" name="middle_man" value="0">
+        </div>
 
-        <label>참여자 (쉼표로 구분):</label>
-        <input type="text" name="participants" required><br>
+        <div class="form-box">
+          <label>중등 여:</label>
+          <input type="number" min="0" name="middle_woman" value="0">
+        </div>
+      </div>
 
-        <label>초등 남:</label>
-        <input type="number" name="element_man" value="0"><br>
+      <div class="form-row">
+        <div class="form-box">
+          <label>고등 남:</label>
+          <input type="number" min="0" name="high_man" value="0">
+        </div>
 
-        <label>초등 여:</label>
-        <input type="number" name="element_woman" value="0"><br>
+        <div class="form-box">
+          <label>고등 여:</label>
+          <input type="number" min="0" name="high_woman" value="0">
+        </div>
+      </div>
 
-        <label>중등 남:</label>
-        <input type="number" name="middle_man" value="0"><br>
+      <div class="form-row">
+        <div class="form-box">
+          <label>후기 남:</label>
+          <input type="number" min="0" name="univ_man" value="0">
+        </div>
 
-        <label>중등 여:</label>
-        <input type="number" name="middle_woman" value="0"><br>
+        <div class="form-box">
+          <label>후기 여:</label>
+          <input type="number" min="0" name="univ_woman" value="0">
+        </div>
+      </div>
+    </div>
 
-        <label>고등 남:</label>
-        <input type="number" name="high_man" value="0"><br>
+    <label>&gt;작성자</label>
+    <input type="text" name="author" placeholder="캡튼 안" required><br>
 
-        <label>고등 여:</label>
-        <input type="number" name="high_woman" value="0"><br>
+    <label>&gt;활동 내용</label>
+    <textarea name="activity_content" rows="6" placeholder="다같이 모여서 작당모의를 야무지게 했다." required></textarea><br>
 
-        <label>후기 남:</label>
-        <input type="number" name="univ_man" value="0"><br>
-
-        <label>후기 여:</label>
-        <input type="number" name="univ_woman" value="0"><br>
-        
-        <label>작성자:</label>
-        <input type="text" name="author" required><br>
-
-        <label>활동 내용:</label>
-        <textarea name="activity_content" rows="6" required></textarea><br>
-
-        <button type="submit">저장하기</button>
-    </form>
+    <button type="submit">저장하기</button>
+  </form>
 </div>
 
 <script>

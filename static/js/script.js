@@ -53,3 +53,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const defaultTab = document.querySelector('.tab.active').dataset.tab;
     moreLink.href = links[defaultTab];
 });
+
+const date = new Date();
+const today_year = date.getFullYear();
+const today_month = date.getMonth() + 1;
+const today_day = date.getDate();
+
+// DOMContentLoaded 이벤트로 HTML 로딩 후 실행
+document.addEventListener("DOMContentLoaded", function() {
+  document.getElementById('activity_year').value = today_year;
+  document.getElementById('activity_month').value = String(today_month).padStart(2, '0');
+  document.getElementById('activity_day').value = String(today_day).padStart(2, '0');
+});

@@ -6,6 +6,22 @@ body {
     padding: 0;
 }
 
+.form-time{
+    padding-left: 8%;
+}
+
+.form-people{
+    padding-left: 8%;
+}
+
+.form-more{
+    padding-left: 8%;
+}
+
+.form-more label{
+    margin-top: 6px;
+}
+
 .form-container {
     max-width: 600px;
     margin: 40px auto;
@@ -16,13 +32,16 @@ body {
 }
 
 .form-container h2 {
-    margin-bottom: 20px;
+    margin-top: 0px;
+    margin-bottom: 25px;
     text-align: center;
     color: #333;
 }
 
 .form-section {
     display: flex;
+    gap: 10px;
+    vertical-align: middle;
 }
 
 .form-section label {
@@ -30,6 +49,30 @@ body {
     margin-top: 12px;
     color: #333;
     font-weight: bold;
+}
+
+.form-row{
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.form-row p {
+    display: flex;
+    margin: 0px;
+    padding-top: 7.5%;
+    align-items: flex-end;
+}
+
+.form-box{
+    width: 100%;
+}
+
+.form-section p {
+    display: flex;
+    margin: 0px;
+    padding: 0px;
+    align-items: center;
 }
 
 label {
@@ -40,6 +83,7 @@ label {
 }
 
 input, select, textarea {
+    font-family: 'NFont', Pretendard, sans-serif;
     width: 100%;
     padding: 10px;
     margin-top: 6px;
