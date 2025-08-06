@@ -5,6 +5,7 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/club-setting.css') }}">
 <div class="setting-container">
+    <a href="{{ url_for('static', filename='../data/club_log.xlsx') }}" download="동아리 활동 이력.xlsx"><button>동아리 활동 이력 엑셀파일 저장하기</button></a>
     <h2>동아리 목록</h2>
     <div class="table-wrapper">
         {{ club_df | safe }}
