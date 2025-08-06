@@ -1,0 +1,550 @@
+@font-face {
+  font-family: 'NFont';
+  src: url('../fonts/Pretendard-SemiBold.ttf') format('truetype'),
+       url('../fonts/Pretendard-Bold.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+  margin: 0;
+  font-family: 'NFont', Pretendard;
+  background: #f5f5f5;
+}
+
+/* 헤더: 좌측 정렬로 변경 */
+header {
+  background-color: white /*#ebe9f8*/;
+  color: black;
+  padding: 10px 40px;
+  display: flex;
+  align-items: center;
+  gap: 2rem; /* 로고와 메뉴 사이 간격 조정 */
+  border-bottom: 1px solid gray;
+}
+
+/* 로고 텍스트 */
+header h1 {
+  margin: 0;
+  font-size: 20px;
+  white-space: nowrap;
+}
+
+.logo {
+  height: 32px; /* 또는 적절한 크기로 조정 */
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+.hamburger {
+  display: none;
+  font-size: 26px;
+  background: none;
+  border: none;
+  color: black;
+  cursor: pointer;
+}
+
+.nav-wrapper {
+  margin-left: auto;
+  display: flex;
+}
+
+@media (max-width: 922px) {
+  .header-row {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .hamburger {
+    display: block;
+  }
+  .nav-wrapper {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    background: white;
+  }
+  .nav-wrapper.open {
+    display: flex;
+  }
+  .menu {
+    flex-direction: column;
+    width: 100%;
+  }
+  .menu > li > a {
+    display: block;
+    padding: 15px;
+    border-bottom: 1px solid #fff3;
+  }
+  .submenu {
+    position: static;
+    background: #f5f5f5;
+    box-shadow: none;
+    left: 0;
+  }
+  .submenu li a {
+    color: #333;
+  }
+}
+
+/* 메뉴 리스트 (좌측 정렬) */
+.menu {
+  list-style: none;
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+}
+
+/* 각 메뉴 항목 */
+.menu > li {
+  position: relative;
+}
+
+/* 링크 스타일 및 밑줄 효과 */
+.menu > li > a {
+  display: inline-block;
+  padding: 10px 0;
+  text-decoration: none;
+  color: black;
+  position: relative;
+}
+
+/* 밑줄 애니메이션 */
+.menu > li > a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 0;
+  background-color: #00906f;
+  transition: width 0.3s ease;
+}
+
+.menu > li:hover > a::after {
+  width: 100%;
+}
+
+/* 드롭다운 서브메뉴 */
+.submenu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0; /* 오른쪽 기준으로 정렬 */
+  background: white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 0px 0px 8px 8px;
+  padding: 10px 0;
+  min-width: 180px;
+  z-index: 999;
+}
+
+.submenu li {
+  padding: 8px 20px;
+  white-space: nowrap;
+}
+
+.submenu li a {
+  text-decoration: none;
+  color: #333;
+  display: block;
+}
+
+.submenu li:hover {
+  background: #f0f4ff;
+}
+
+.menu > li:hover .submenu {
+  display: block;
+}
+
+
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 15px;
+  margin: 0;
+  padding: 0;
+}
+
+nav ul li {
+  cursor: pointer;
+}
+
+.slider {
+  position: relative;
+  width: 100%;
+  max-width: 1000px;
+  margin: 20px auto;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.slides {
+  display: flex;
+  transition: transform 0.5s ease-in-out;
+}
+
+.slides img {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  object-position: center;
+  flex-shrink: 0;
+}
+
+.section-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin: 20px 10px;
+}
+
+.section-buttons .button {
+  background-color: #1e3a8a;
+  color: white;
+  border: none;
+  padding: 15px 25px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  display: inline-block;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.section-buttons button {
+  background-color: #1e3a8a;
+  color: white;
+  border: none;
+  padding: 15px 25px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  display: inline-block;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.section-buttons .button:hover {
+  background-color: #122457;
+}
+
+.notices-row {
+  max-width: 1000px;
+  margin: 0 auto;
+  background: white;
+  padding: 20px;
+  border-radius: 10px 10px 0px 0px;
+  
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #ccc;
+  padding-bottom: 10px;
+}
+
+.notice-list{
+  max-width: 970px;
+  margin: 0 auto;
+  background: white;
+  padding: 35px;
+  border-radius: 0px 0px 10px 10px;
+  
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 15px;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.notice-list li {
+  padding: 8px 0;
+  font-size: 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.notice-list a:hover {
+  border-bottom: 1px solid #333; /* 원하는 색상으로 밑줄 표시 */
+}
+
+.notice-list a {
+  text-decoration: none;     /* 기본 밑줄 제거 */
+  color: inherit;            /* 부모 텍스트 색상 상속 (파란색 방지) */
+  transition: border-bottom 0.2s ease-in-out;
+  border-bottom: 1px solid transparent; /* 밑줄 공간 미리 확보 (부드러운 효과용) */
+}
+
+.tabs {
+    display: flex;
+    gap: 20px;
+    font-size: 18px;
+}
+
+.tabs .tab {
+  display: inline-block;
+  text-decoration: none;
+  position: relative;
+  
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+  padding-bottom: 0.3rem;
+}
+
+.tabs .tab.active {
+  display: inline-block;
+  text-decoration: none;
+  position: relative;
+  
+  font-weight: bold;
+  color: black;
+}
+
+.tabs .tab:hover::after {
+  width: 100%;
+}
+
+.tabs .tab::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 0;
+  background-color: #00906f;
+  transition: width 0.3s ease;
+}
+
+.more {
+    font-size: 14px;
+    color: #888;
+    text-decoration: none;
+}
+
+.more:hover {
+  border-bottom: 1px solid #888;
+}
+
+@media (max-width: 500px) {
+  .tabs .tab {
+    font-size: 20px;
+  }
+  
+  .notice-list{
+    padding-top: 10px;
+  }
+  
+  .previous h2 {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 427px) {
+  .tabs .tab {
+    font-size: 17px;
+  }
+  
+  .previous h2 {
+    font-size: 17px;
+  }
+}
+
+.previous {
+  max-width: 1000px;
+  margin: 0 auto;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.previous h2 {
+  margin-top: 0;
+  border-bottom: 2px solid #ccc;
+  padding-bottom: 10px;
+}
+
+.previous ul {
+  list-style: none;
+  padding: 0;
+}
+
+.previous li {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.previous ul li a {
+  text-decoration: none;     /* 기본 밑줄 제거 */
+  color: inherit;            /* 부모 텍스트 색상 상속 (파란색 방지) */
+  transition: border-bottom 0.2s ease;
+  border-bottom: 1px solid transparent; /* 밑줄 공간 미리 확보 (부드러운 효과용) */
+}
+
+.previous ul li a:hover {
+  border-bottom: 1px solid #333; /* 원하는 색상으로 밑줄 표시 */
+}
+
+
+.privacy {
+  background-color: white;
+  text-align: center;
+  padding: 20px;
+  font-size: 20px;
+  border-top: 1px solid gray;
+}
+
+.privacy a{
+  text-decoration: none;     /* 기본 밑줄 제거 */
+  color: #db5329;            /* 부모 텍스트 색상 상속 (파란색 방지) */
+  transition: border-bottom 0.1s ease-in-out;
+  border-bottom: 2px solid transparent; /* 밑줄 공간 미리 확보 (부드러운 효과용) */
+}
+
+.privacy a:hover{
+  border-bottom: 2px solid #db5329; /* 원하는 색상으로 밑줄 표시 */
+}
+
+footer {
+  background-color: #1f2937;
+  color: white;
+  text-align: center;
+  padding: 40px 20px 140px;
+  /*margin-top: 40px;*/
+}
+
+@media (max-width: 858px) {
+  .section-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+  }
+
+  .section-buttons .button {
+    flex: 1 1 40%;
+    min-width: 140px;
+    box-sizing: border-box;
+  }
+  
+  .section-buttons button {
+    flex: 1 1 40%;
+    min-width: 140px;
+    box-sizing: border-box;
+  }
+}
+
+
+/* 모바일 화면 전용 버튼 줄바꿈 스타일 */
+@media (max-width: 600px) {
+  .section-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .section-buttons .button {
+    flex: 1 1 100%;
+    min-width: 200px;
+    margin: 5px 0;
+  }
+  
+  .section-buttons button {
+    flex: 1 1 100%;
+    min-width: 200px;
+    margin: 5px 0;
+  }
+}
+
+.floating-sns {
+  position: fixed;
+  right: 40px;
+  bottom: 40px;
+  width: 110px; /* 너비 약간 늘림 */
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 12px 10px;
+  z-index: 9999;
+  border: 1px solid gray;
+  font-family: 'NFont', sans-serif;
+}
+
+/* 로고와 타이틀을 나란히 정렬 */
+.floating-sns .sns-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+/* 로고 이미지 */
+.floating-sns .fond-logo {
+  width: 40px;
+  height: auto;
+  margin: 0;
+}
+
+/* 나름 #SNS 텍스트 */
+.floating-sns .fond-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #222;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.floating-sns .fond-title strong {
+  color: #e0245e; /* hashtag red */
+}
+
+/* SNS 링크들 */
+.floating-sns .sns-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.floating-sns .sns-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: #000;
+  font-size: 13px;
+}
+
+.floating-sns .sns-item img {
+  width: 30px;
+  height: 30px;
+}
+
+.scrollTopBtn {
+	width: 40px;
+	height: 40px;
+	background-color: #1f2937;
+	color: white;
+	font-size: 30px;
+	padding: 5px;
+	border: 1px solid white;
+	border-radius: 8px;
+	text-align: center;
+	display: inline-block;
+	margin-top: 30px;
+	transition: background-color 0.2s ease;
+}
+
+.scrollTopBtn:hover {
+	background-color: white;
+	color: black;
+	border: 1px solid black;
+}

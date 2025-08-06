@@ -1,0 +1,47 @@
+/* club-setting.css */
+body {
+    font-family: 'NFont', sans-serif;
+    background-color: #f2f2f2;
+    margin: 0;
+    padding: 0;
+}
+
+.setting-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    background: #fff;
+    padding: 30px 40px;
+    border-radius: 10px;
+    box-shadow: 0 0 12px rgba(0,0,0,0.08);
+}
+
+.setting-container h2 {
+    margin-top: 30px;
+    margin-bottom: 20px;
+    color: #333;
+    border-bottom: 2px solid #3366cc;
+    padding-bottom: 5px;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 30px;
+}
+
+.table-wrapper table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.table-wrapper th, .table-wrapper td {
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.table-wrapper th {
+    background-color: #f0f8ff;
+    font-weight: bold;
+    color: #333;
+}
