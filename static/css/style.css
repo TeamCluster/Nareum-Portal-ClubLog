@@ -466,8 +466,8 @@ footer {
 
 .floating-sns {
   position: fixed;
-  right: 40px;
-  bottom: 40px;
+  right: 20px;
+  bottom: 20px;
   width: 110px; /* 너비 약간 늘림 */
   background: white;
   border-radius: 16px;
