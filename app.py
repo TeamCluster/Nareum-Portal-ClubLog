@@ -24,7 +24,7 @@ def getPath():
 
 # 초기 페이지: 활동일지 작성 폼
 @app.route('/', methods=['GET', 'POST'])
-def form():
+def main():
     club_names = club_df['동아리 명'].tolist()
 
     if request.method == 'POST':
@@ -86,7 +86,7 @@ def form():
 
     return render_template('main.html', club_names=club_names, club_dict=club_dict)
 
-def main():
+def form():
     pass  # 이전 main 함수는 이제 필요 없음. 빈껍데기로 유지.
 
 # 입력 성공 팝업

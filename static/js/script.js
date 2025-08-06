@@ -1,26 +1,3 @@
-// 모달 보여주는 함수
-function showSuccessModal() {
-  document.getElementById("successModal").style.display = "block";
-}
-
-// 모달 닫기 → 페이지 새로고침
-document.getElementById("closeModal").onclick = function () {
-  location.reload();
-};
-
-document.getElementById("okButton").onclick = function () {
-  location.reload();
-};
-
-// 배경 클릭 시 닫기 (선택사항)
-window.onclick = function(event) {
-  const modal = document.getElementById("successModal");
-  if (event.target === modal) {
-    location.reload();
-  }
-};
-//----------------------------------------------------------------
-
 const slides = document.getElementById("slides");
 let currentIndex = 0;
 
