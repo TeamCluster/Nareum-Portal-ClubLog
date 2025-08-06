@@ -55,7 +55,7 @@ def main():
         df = pd.DataFrame([{
             '동아리 분야': category,
             '동아리 명': club_name,
-            '활동 일자': f"{year}-{month}-{day}",
+            '활동 일자': datetime(int(year), int(month), int(day)),
             '시작 시간': f"{start_hour}:{start_minute}",
             '종료 시간': f"{end_hour}:{end_minute}",
             '참가자': participants,
