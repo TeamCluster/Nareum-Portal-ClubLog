@@ -14,7 +14,7 @@ DIARY_LOG_PATH = os.path.join(DATA_FOLDER, 'club_log.xlsx')
 club_df = pd.read_excel(CLUB_LIST_PATH)
 club_df.columns = club_df.columns.str.strip()
 
-print("엑셀 컬럼명:", club_df.columns.tolist())  # 디버깅용
+#print("엑셀 컬럼명:", club_df.columns.tolist())  # 디버깅용
 club_dict = dict(zip(club_df['동아리 명'], club_df['동아리 분야']))
 
 
