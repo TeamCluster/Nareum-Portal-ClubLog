@@ -101,9 +101,9 @@ button[type="submit"]:hover {
     background-color: #246e47;
 }
 
-/* ¸ğ´Ş ¹è°æ */
+/* ëª¨ë‹¬ ë°°ê²½ */
 .modal {
-  display: none; /* ±âº»Àº ¼û±è */
+  display: none; /* ê¸°ë³¸ì€ ìˆ¨ê¹€ */
   position: fixed;
   z-index: 1000;
   left: 0; top: 0;
@@ -111,7 +111,7 @@ button[type="submit"]:hover {
   background-color: rgba(0,0,0,0.5);
 }
 
-/* ¸ğ´Ş ¹Ú½º */
+/* ëª¨ë‹¬ ë°•ìŠ¤ */
 .modal-content {
   background-color: white;
   padding: 20px;
@@ -121,7 +121,7 @@ button[type="submit"]:hover {
   text-align: center;
 }
 
-/* ´İ±â ¹öÆ° (x) */
+/* ë‹«ê¸° ë²„íŠ¼ (x) */
 .close-button {
   float: right;
   font-size: 24px;
