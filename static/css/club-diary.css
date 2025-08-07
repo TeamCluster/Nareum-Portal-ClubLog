@@ -112,6 +112,7 @@ button[type="submit"]:hover {
 
 /* 팝업 */
 .popup {
+    position: relative;
     max-width: 400px;
     margin: 100px auto;
     padding: 30px;
@@ -143,6 +144,18 @@ button[type="submit"]:hover {
 
 .popup form button:hover {
     background-color: #246e47;
+}
+
+/* 도장 이미지 스타일 */
+.stamp-img {
+    position: absolute;
+    top: -25px;
+    right: 5%;
+    max-width: 120px;
+    height: auto;
+    transform: rotate(20deg);
+    opacity: 0.9;
+    pointer-events: none; /* 클릭 방지 */
 }
 
 /* 모달 스타일 */

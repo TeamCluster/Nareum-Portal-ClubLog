@@ -5,6 +5,7 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/club-diary.css') }}">
 <div class="popup">
+    <img src="{{ url_for('static', filename='files/img/center_goodjob.png') }}" alt="센터장님 참 잘했어요" class="stamp-img">
     <h2>저장 완료</h2>
     <p><strong>{{ date }}</strong>에 진행된 <strong>[{{ category }}] {{ club }}</strong> 활동이</p>
     <p><strong>{{ people }}명</strong>으로 성공적으로 저장되었습니다.</p>
