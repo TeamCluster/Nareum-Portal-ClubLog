@@ -1,7 +1,7 @@
 ﻿from flask import Flask, render_template, request, redirect, url_for
 import pandas as pd
 import os
-from datetime import datetime
+from datetime import datetime, date
 
 app = Flask(__name__)
 
@@ -50,12 +50,14 @@ def main():
         univ_man = int(request.form.get('univ_man'))
         univ_woman = int(request.form.get('univ_woman'))
         party_num = element_man + element_woman + middle_man + middle_woman + high_man + high_woman + univ_man + univ_woman
+        if party_num == 0:
+            return render_template('main.html', club_names=club_names, club_dict=club_dict, error="총 인원수가 0명일 수 없습니다.", form=request.form)
 
         # 저장할 DataFrame 생성
         df = pd.DataFrame([{
             '동아리 분야': category,
             '동아리 명': club_name,
-            '활동 일자': datetime(int(year), int(month), int(day)),
+            '활동 일자': date(int(year), int(month), int(day)),
             '시작 시간': f"{start_hour}:{start_minute}",
             '종료 시간': f"{end_hour}:{end_minute}",
             '참가자': participants,

@@ -52,6 +52,9 @@
 
     <label>&gt;연령 별 참여자 수</label>
     <div class="form-more">
+      {% if error %}
+        <p style="color: red;">{{ error }}</p>
+      {% endif %}
       <div class="form-row">
         <div class="form-box">
           <label>초등 남:</label>

@@ -6,14 +6,14 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/club-setting.css') }}">
 <div class="setting-container">
     <h1>동아리 활동일지 관리 페이지</h1>
-    <a href="{{ url_for('static', filename='../data/club_log.xlsx') }}" download="동아리 활동 이력.xlsx"><button>동아리 활동 이력 엑셀파일 저장하기</button></a>
+    <a href="{{ url_for('static', filename='../data/club_log.xlsx') }}" download="동아리 활동 이력.xlsx"><button>동아리 활동 이력 엑셀파일 저장하기 (아직안돼요ㅠㅠ)</button></a>
     <h2>동아리 목록</h2>
-    <div class="table-wrapper">
+    <div class="table-list">
         {{ club_df | safe }}
     </div>
 
     <h2>활동 이력</h2>
-    <div class="table-wrapper">
+    <div class="table-log">
         {{ log_df | safe }}
     </div>
 </div>

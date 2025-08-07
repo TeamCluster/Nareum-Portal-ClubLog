@@ -31,24 +31,49 @@ body {
     padding-bottom: 5px;
 }
 
-.table-wrapper {
+.table-list {
     overflow-x: auto;
     margin-bottom: 30px;
 }
 
-.table-wrapper table {
+.table-list table {
     border-collapse: collapse;
-    width: 100%;
+    width: 50%;
+    min-width: 235px;
+
     margin-bottom: 20px;
 }
 
-.table-wrapper th, .table-wrapper td {
+.table-list th, .table-list td {
     border: 1px solid #ccc;
     padding: 8px 12px;
     text-align: left;
 }
 
-.table-wrapper th {
+.table-list th {
+    background-color: #f0f8ff;
+    font-weight: bold;
+    color: #333;
+}
+
+.table-log {
+    overflow-x: auto;
+    margin-bottom: 30px;
+}
+
+.table-log table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.table-log th, .table-log td {
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.table-log th {
     background-color: #f0f8ff;
     font-weight: bold;
     color: #333;
