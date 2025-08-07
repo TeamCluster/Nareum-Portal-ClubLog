@@ -1,9 +1,10 @@
-﻿from flask import Flask, render_template, request, redirect, url_for
+﻿from flask import Flask, render_template, request, redirect, url_for, session
 import pandas as pd
 import os
 from datetime import datetime, date
 
 app = Flask(__name__)
+app.secret_key = 'Skfma20601318'
 
 # 경로 설정 (예시)
 DATA_FOLDER = 'data'
@@ -83,8 +84,13 @@ def main():
         else:
             df.to_excel(DIARY_LOG_PATH, index=False)
 
-        return redirect(url_for('success_popup', club=club_name, category=category,
-                                date=f"{year}-{month}-{day}", people=party_num))
+        # 세션에 결과 저장
+        session['club'] = club_name
+        session['category'] = category
+        session['date'] = f"{year}-{month}-{day}"
+        session['people'] = party_num
+
+        return redirect(url_for('success_popup'))
 
     return render_template('main.html', club_names=club_names, club_dict=club_dict)
 
@@ -94,10 +100,17 @@ def form():
 # 입력 성공 팝업
 @app.route('/success')
 def success_popup():
-    club = request.args.get('club')
-    category = request.args.get('category')
-    date = request.args.get('date')
-    people = request.args.get('people')
+    club = session.get('club')
+    category = session.get('category')
+    date = session.get('date')
+    people = session.get('people')
+
+    # 세션에서 읽은 후 지우기 (선택사항)
+    session.pop('club', None)
+    session.pop('category', None)
+    session.pop('date', None)
+    session.pop('people', None)
+
     return render_template('success_popup.html', club=club, category=category, date=date, people=people)
 
 # 설정 페이지
