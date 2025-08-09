@@ -48,11 +48,21 @@ def main():
         univ_woman = int(request.form.get('univ_woman'))
         party_num = element_man + element_woman + middle_man + middle_woman + high_man + high_woman + univ_man + univ_woman
         if party_num == 0:
-            return render_template('main.html', club_names=club_names, club_dict=club_dict, error="총 인원수가 0명일 수 없습니다.", form=request.form)
+            return """
+                <script>
+                    alert("총 인원수가 0명일 수 없습니다.");
+                    history.back();
+                </script>
+                """
         if start_hour < 9: start_hour += 12
         if end_hour < 9: end_hour += 12
-        if (start_hour > end_hour) or (start_hour == end_hour and start_minute >= end_minute):
-            return render_template('main.html', club_names=club_names, club_dict=club_dict, error="시작 시간은 종료 시간 이전이여야 합니다.", form=request.form)
+        if start_hour * 60 + start_minute >= end_hour * 60 + end_minute:  # 시간 역순 체크
+            return """
+                <script>
+                    alert("시작 시간은 종료 시간 이전이어야 합니다.");
+                    history.back();
+                </script>
+                """
 
         # 저장할 DataFrame 생성
         df = pd.DataFrame([{
