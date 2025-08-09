@@ -18,11 +18,6 @@ club_df.columns = club_df.columns.str.strip()
 #print("엑셀 컬럼명:", club_df.columns.tolist())  # 디버깅용
 club_dict = dict(zip(club_df['동아리 명'], club_df['동아리 분야']))
 
-
-@app.route('/test')
-def getPath():
-	return "[[[]]]" + os.path.curdir
-
 # 초기 페이지: 활동일지 작성 폼
 @app.route('/', methods=['GET', 'POST'])
 def main():
