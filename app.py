@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, send_file, Response
+from io import BytesIO
 import pandas as pd
 import os
 from datetime import datetime, date
@@ -114,6 +115,35 @@ def setting():
     club_df = pd.read_excel(CLUB_LIST_PATH) if os.path.exists(CLUB_LIST_PATH) else pd.DataFrame()
     log_df = pd.read_excel(DIARY_LOG_PATH) if os.path.exists(DIARY_LOG_PATH) else pd.DataFrame()
     return render_template('setting.html', club_df=club_df.to_html(index=False), log_df=log_df.to_html(index=False))
+
+# 로그 파일 다운로드 받기
+@app.route("/download_log")
+def download_log():
+    try:
+        # 엑셀 파일 읽기
+        log_df = pd.read_excel(DIARY_LOG_PATH)
+
+        # 현재 시각 기반 파일명 만들기
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"동아리 일지_{timestamp}.xlsx"
+
+        # 메모리 버퍼에 저장
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            log_df.to_excel(writer, index=False)
+        output.seek(0)  # 스트림 처음으로 이동
+
+        # 파일 전송
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=filename,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    except Exception as err:
+        print(err)
+        return Response(str(err), status=500)
 
 if __name__ == '__main__':
     app.run(debug=True)
