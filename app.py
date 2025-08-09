@@ -31,10 +31,10 @@ def main():
         year = request.form.get('activity_year')
         month = request.form.get('activity_month')
         day = request.form.get('activity_day')
-        start_hour = request.form.get('start_hour')
-        start_minute = request.form.get('start_minute')
-        end_hour = request.form.get('end_hour')
-        end_minute = request.form.get('end_minute')
+        start_hour = int(request.form.get('start_hour'))
+        start_minute = int(request.form.get('start_minute'))
+        end_hour = int(request.form.get('end_hour'))
+        end_minute = int(request.form.get('end_minute'))
         participants = request.form.get('participants')
         author = request.form.get('author')
         content = request.form.get('activity_content')
@@ -49,6 +49,10 @@ def main():
         party_num = element_man + element_woman + middle_man + middle_woman + high_man + high_woman + univ_man + univ_woman
         if party_num == 0:
             return render_template('main.html', club_names=club_names, club_dict=club_dict, error="총 인원수가 0명일 수 없습니다.", form=request.form)
+        if start_hour < 9: start_hour += 12
+        if end_hour < 9: end_hour += 12
+        if (start_hour > end_hour) or (start_hour == end_hour and start_minute >= end_minute):
+            return render_template('main.html', club_names=club_names, club_dict=club_dict, error="시작 시간은 종료 시간 이전이여야 합니다.", form=request.form)
 
         # 저장할 DataFrame 생성
         df = pd.DataFrame([{
