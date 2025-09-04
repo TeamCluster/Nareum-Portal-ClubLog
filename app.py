@@ -1,8 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, session, send_file, Response
+﻿from flask import Flask, render_template, request, redirect, url_for, session, send_file, Response, flash
 from io import BytesIO
 import pandas as pd
 import os
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 app = Flask(__name__)
 app.secret_key = 'Skfma20601318'
@@ -11,6 +11,7 @@ app.secret_key = 'Skfma20601318'
 DATA_FOLDER = 'data'
 CLUB_LIST_PATH = os.path.join(DATA_FOLDER, 'club_list.xlsx')
 DIARY_LOG_PATH = os.path.join(DATA_FOLDER, 'club_log.xlsx')
+WEEKLY_LOG_PATH = os.path.join(DATA_FOLDER, "club_weekly.xlsx")
 
 # club_list.xlsx를 딕셔너리로 로딩
 club_df = pd.read_excel(CLUB_LIST_PATH)
@@ -158,6 +159,149 @@ def download_log():
     except Exception as err:
         print(err)
         return Response(str(err), status=500)
+    
+def load_club_list():
+    if not os.path.exists(CLUB_LIST_PATH):
+        # 최소 스키마 생성
+        df = pd.DataFrame(columns=["동아리 명", "동아리 분야", "인증번호"])
+        df.to_excel(CLUB_LIST_PATH, index=False)
+    df = pd.read_excel(CLUB_LIST_PATH)
+    # 인증번호 컬럼 없으면 채워줌
+    if "인증번호" not in df.columns:
+        df["인증번호"] = "0000"
+    df["인증번호"] = df["인증번호"].fillna("0000").astype(str).str.zfill(4)
+    return df
+
+def ensure_weekly_log():
+    if not os.path.exists(WEEKLY_LOG_PATH):
+        df = pd.DataFrame(columns=["동아리 명", "활동 주차", "활동 여부", "작성 일시", "분야"])
+        df.to_excel(WEEKLY_LOG_PATH, index=False)
+
+def append_weekly_log(rowdict):
+    ensure_weekly_log()
+    df = pd.read_excel(WEEKLY_LOG_PATH)
+    df = pd.concat([df, pd.DataFrame([rowdict])], ignore_index=True)
+    df.to_excel(WEEKLY_LOG_PATH, index=False)
+
+# ------- 주차 계산 (요구 스펙) -------
+"""
+입력 가능 기한: 토요일 00:00:00 ~ 금요일 23:59:59
+이 기간에 '등록 대상 주'는 다음 규칙:
+- 토/일(5/6요일): 다음 주 월~일
+- 월~금(0~4요일): 이번 주 월~일
+"""
+def get_target_monday(now):
+    wd = now.weekday()  # Mon=0 ... Sun=6
+    if wd in (5, 6):  # Sat/Sun
+        # 다음 주 월요일
+        days = (7 - wd) % 7
+        if days == 0:
+            days = 7
+        return (now + timedelta(days=days)).replace(hour=0, minute=0, second=0, microsecond=0)
+    else:
+        # 이번 주 월요일
+        return (now - timedelta(days=wd)).replace(hour=0, minute=0, second=0, microsecond=0)
+
+def get_week_header(now):
+    mon = get_target_monday(now)
+    days = [mon + timedelta(days=i) for i in range(7)]  # 월~일
+    # ISO 주차(월 시작)
+    year, week_num, _ = days[0].isocalendar()
+    return year, week_num, days
+
+def within_submission_window(now):
+    mon = get_target_monday(now)
+    window_start = mon - timedelta(days=2)                       # 토요일 00:00:00
+    window_end   = mon + timedelta(days=4, hours=23, minutes=59, seconds=59)  # 금요일 23:59:59
+    return window_start <= now <= window_end
+
+# ------- 주간 입력 페이지 -------
+@app.route("/weekly", methods=["GET", "POST"])
+def weekly():
+    now = datetime.now()
+    clubs_df = load_club_list()
+    # 화면용: 동아리명 리스트
+    club_names = clubs_df["동아리 명"].dropna().tolist()
+
+    # 주차 헤더 데이터 (2025년 N주차 + 날짜 라벨)
+    year, week_num, days = get_week_header(now)
+    week_label = f"{year}년 {week_num}주차"
+    day_labels = [d.strftime("%m-%d") for d in days]  # "09-01" 형식
+
+    if request.method == "POST":
+        if not within_submission_window(now):
+            flash("현재는 입력 가능 기간(토요일~금요일)이 아닙니다.", "error")
+            return redirect(url_for("weekly"))
+
+        club_name = request.form.get("club_name", "").strip()
+        activity_status = request.form.get("activity_status", "동아리 활동 일정 없음")
+        auth_code_input = (request.form.get("club_auth", "") or "").strip()
+
+        # 유효성: 동아리/분야 조회 & 인증번호 대조
+        row = clubs_df[clubs_df["동아리 명"] == club_name]
+        if row.empty:
+            flash("동아리 명을 선택해 주세요.", "error")
+            return redirect(url_for("weekly"))
+
+        real_auth = str(row.iloc[0]["인증번호"]).zfill(4)
+        category  = row.iloc[0]["동아리 분야"] if "동아리 분야" in row.columns else ""
+
+        if not (auth_code_input.isdigit() and len(auth_code_input) == 4):
+            flash("동아리 인증번호는 숫자 4자리여야 합니다.", "error")
+            return redirect(url_for("weekly"))
+
+        if auth_code_input != real_auth:
+            flash("동아리 인증번호가 올바르지 않습니다.", "error")
+            return redirect(url_for("weekly"))
+
+        # 저장
+        append_weekly_log({
+            "동아리 명": club_name,
+            "활동 주차": week_label,
+            "활동 여부": activity_status,
+            "작성 일시": now.strftime("%Y-%m-%d %H:%M:%S"),
+            "분야": category
+        })
+        return redirect(url_for("weekly_success", week=week_label, category=category, club=club_name, activity=activity_status))
+
+    return render_template(
+        "weekly.html",
+        club_names=club_names,
+        week_label=week_label,
+        day_labels=day_labels
+    )
+
+# ------- 성공 팝업 -------
+@app.route("/weekly/success")
+def weekly_success():
+    week = request.args.get("week", "")
+    category = request.args.get("category", "")
+    club = request.args.get("club", "")
+    activity = request.args.get("activity", "")
+    return render_template(
+        "weekly_success.html",
+        week=week, category=category, club=club, activity=activity
+    )
+
+# ------- 세팅 페이지 (주간) -------
+@app.route("/weekly/setting")
+def weekly_setting():
+    clubs_df = load_club_list().rename(columns={
+        "동아리 명": "동아리 명",
+        "동아리 분야": "분야"
+    })
+    ensure_weekly_log()
+    weekly_df = pd.read_excel(WEEKLY_LOG_PATH)
+
+    # 테이블 HTML (간단 스타일용 class 부여)
+    club_table_html = clubs_df[["동아리 명", "분야", "인증번호"]].to_html(index=False, classes="table table-sm table-striped", border=0)
+    weekly_table_html = weekly_df[["동아리 명", "활동 주차", "활동 여부", "작성 일시"]].to_html(index=False, classes="table table-sm table-striped", border=0)
+
+    return render_template(
+        "weekly_setting.html",
+        club_table_html=club_table_html,
+        weekly_table_html=weekly_table_html
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)
