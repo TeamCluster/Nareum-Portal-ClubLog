@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}주간 활동 여부 등록{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/club-diary.css') }}">
+
+<div class="form-container" style="max-width: 760px; margin:40px auto;">
+  <h2>주간 활동 여부 등록</h2>
+
+  <!-- 주차 헤더 -->
+  <div class="weekly-header">
+    <h3 style="margin-bottom: 8px;">{{ week_label }}</h3>
+    <div class="weekly-grid">
+      <div class="dow">월</div>
+      <div class="dow">화</div>
+      <div class="dow">수</div>
+      <div class="dow">목</div>
+      <div class="dow">금</div>
+      <div class="dow sat">토</div>
+      <div class="dow sun">일</div>
+
+      {% for i in range(7) %}
+        {% set cls = 'date' %}
+        {% if i == 5 %}{% set cls = 'date sat' %}{% endif %}
+        {% if i == 6 %}{% set cls = 'date sun' %}{% endif %}
+        <div class="{{ cls }}">{{ day_labels[i] }}</div>
+      {% endfor %}
+    </div>
+    <p class="helper-text">입력 가능 기간: 토요일 00:00 ~ 금요일 23:59:59 (해당 기간에 위 주차에 대한 활동 여부를 등록)</p>
+  </div>
+
+  <form action="{{ url_for('weekly') }}" method="POST" class="weekly-form">
+    <!-- 동아리 명 -->
+    <label for="club-name">*동아리 명</label>
+    <select id="club-name" name="club_name" required>
+      <option value="" disabled selected>동아리를 골라주세요</option>
+      {% for name in club_names %}
+        <option value="{{ name }}">{{ name }}</option>
+      {% endfor %}
+    </select><br>
+
+    <!-- 활동 일자(자동 안내용) -->
+    <label>*활동 주차</label>
+    <div class="readonly-box">
+      <div>{{ week_label }} (월~일)</div>
+      <div class="dates-inline">{{ day_labels | join(" · ") }}</div>
+    </div>
+
+    <!-- 활동 여부 -->
+    <label for="activity-status">*활동 여부</label>
+    <select id="activity-status" name="activity_status" required>
+      <option value="동아리 활동 일정 없음" selected>동아리 활동 일정 없음</option>
+      <option value="동아리 활동 예정">동아리 활동 예정</option>
+    </select><br>
+
+    <!-- 동아리 인증번호 -->
+    <label for="club-auth">*동아리 인증번호</label>
+    <input id="club-auth" name="club_auth" type="text" inputmode="numeric" maxlength="4" placeholder="숫자 4자리" required>
+    <small class="helper-text">인증번호는 숫자 4자리입니다. (설정이 없으면 0000)</small>
+
+    <br><br>
+    <button type="submit">저장하기</button>
+  </form>
+</div>
+
+<style>
+.weekly-grid{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap:6px;
+  border:1px solid var(--border, #e5e7eb);
+  border-radius:12px; padding:10px;
+  background: var(--panel, #dfdfdf);
+}
+.dow{ text-align:center; font-weight:700; padding:8px 0; opacity:.9 }
+.date{ text-align:center; padding:10px 0; border-radius:10px; background:#a1a1a1; }
+.sat{ color:#7ab6ff; }
+.sun{ color:#ff7a7a; }
+.date.sat{ background: rgba(80,140,255,.15); }
+.date.sun{ background: rgba(255,80,80,.15); }
+
+.readonly-box{ padding:10px 12px; border-radius:10px; background:#dfdfdf; border:1px solid #26282b; margin-bottom:8px;}
+.dates-inline{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; opacity:.9 }
+
+.helper-text{ font-size:.9rem; opacity:.8; margin:6px 0 0; }
+.weekly-form select, .weekly-form input{ width:100%; }
+</style>
+{% endblock %}
