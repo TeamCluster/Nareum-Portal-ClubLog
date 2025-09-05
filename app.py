@@ -303,5 +303,34 @@ def weekly_setting():
         weekly_table_html=weekly_table_html
     )
 
+# 주간 활동 파일 다운로드 하기
+@app.route("/download_weekly")
+def download_weekly():
+    try:
+        # 엑셀 파일 읽기
+        log_df = pd.read_excel(WEEKLY_LOG_PATH)
+
+        # 현재 시각 기반 파일명 만들기
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"동아리 주간 활동 여부_{timestamp}.xlsx"
+
+        # 메모리 버퍼에 저장
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            log_df.to_excel(writer, index=False)
+        output.seek(0)  # 스트림 처음으로 이동
+
+        # 파일 전송
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=filename,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    except Exception as err:
+        print(err)
+        return Response(str(err), status=500)
+
 if __name__ == '__main__':
     app.run(debug=True)
