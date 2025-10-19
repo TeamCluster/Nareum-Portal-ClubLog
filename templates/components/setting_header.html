@@ -1,0 +1,22 @@
+<header>
+  <div class="header-row">
+    <h1>
+  	  <a href="{{ url_for('setting_main') }}" style="text-decoration: none; color: inherit;">
+      <img src="{{ url_for('static', filename='files/main/logo_nareum.png') }}" alt="나름청소년활동센터 로고" class="logo" />
+      - 관리자페이지
+      </a>
+  	</h1>
+  	<button class="hamburger" id="hamburger">&#9776;</button>
+  </div>
+  <div class="nav-wrapper" id="nav-wrapper">
+    <nav>
+      <ul class="menu">
+        <li><a href="{{ url_for('main') }}" target="_blank">일지 작성 페이지</a></li>
+        <li><a href="{{ url_for('setting_main') }}">대시보드</a></li>
+        <li><a href="{{ url_for('setting_club_log') }}">동아리 활동 이력</a></li>
+        <li><a href="{{ url_for('setting_club_list') }}">동아리 일람</a></li>
+        <li><a href="{{ url_for('setting_logout') }}">로그아웃</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
