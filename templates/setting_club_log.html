@@ -7,14 +7,70 @@
 <div class="setting-container">
     <h1>동아리 활동일지 관리 페이지</h1>
     <a href="{{ url_for('download_log') }}"><button>동아리 활동 이력 엑셀파일 저장하기 💾</button></a>
-    <h2>동아리 목록</h2>
-    <div class="table-list">
-        {{ club_df | safe }}
-    </div>
+    <h2>활동 이력 (최신순)</h2>
 
-    <h2>활동 이력</h2>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+        {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
     <div class="table-log">
-        {{ log_df | safe }}
+        <table>
+            <thead>
+                <tr>
+                    <th>관리</th>
+                    <th>기록일시</th>
+                    <th>동아리 명</th>
+                    <th>활동 일자</th>
+                    <th>활동 내용</th>
+                    <th>작성자</th>
+                    <th>총 인원수</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if logs %}
+                    {% for log in logs %}
+                    <tr>
+                        <td>
+                            <form method="POST" action="{{ url_for('delete_log_entry') }}" 
+                                onsubmit="return confirm('이 기록({{ log['동아리 명'] | string }} {{ log['기록일시'] | string }})을(를) 정말로 삭제하시겠습니까?');">
+                                
+                                <input type="hidden" name="timestamp" value="{{ log['기록일시'] | string }}">
+                                <input type="hidden" name="club_name" value="{{ log['동아리 명'] }}">
+                                <button type="submit" class="btn-delete" style="margin-top: 0px;">삭제</button>
+                            </form>
+                        </td>
+                        <td>{{ log['기록일시'] | string }}</td>
+                        <td>{{ log['동아리 명'] }}</td>
+                        <td>{{ log['활동 일자'] | string | replace(' 00:00:00', '') }}</td>
+                        <td>{{ log['활동 내용'] | truncate(80) }}</td>
+                        <td>{{ log['작성자'] }}</td>
+                        <td>{{ log['총 인원수'] }}명</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 20px;">
+                            아직 활동 이력이 없습니다.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
     </div>
 </div>
+
+<style>
+.table-log th {
+    background-color: #f0f8ff;
+}
+.table-log tr:hover {
+    background-color: #f9f9f9;
+}
+</style>
 {% endblock %}
