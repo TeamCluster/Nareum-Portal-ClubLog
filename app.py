@@ -237,10 +237,72 @@ def setting_club_log():
     if not session.get('logged_in'):
         return redirect(url_for('setting_login'))
     """ 동아리 활동 이력 페이지 """
-    club_df = pd.read_excel(CLUB_LIST_PATH) if os.path.exists(CLUB_LIST_PATH) else pd.DataFrame()
+    # club_df = pd.read_excel(CLUB_LIST_PATH) if os.path.exists(CLUB_LIST_PATH) else pd.DataFrame()
+    # log_df = pd.read_excel(DIARY_LOG_PATH) if os.path.exists(DIARY_LOG_PATH) else pd.DataFrame()
+    """ 동아리 활동 이력 페이지 """
+    # 동아리 목록은 기존처럼 HTML로 전달
+    club_df_html = (pd.read_excel(CLUB_LIST_PATH).to_html(index=False, classes="table") 
+                    if os.path.exists(CLUB_LIST_PATH) 
+                    else "<p>동아리 목록 파일이 없습니다.</p>")
+    
+    # 활동 이력은 데이터(딕셔너리 리스트)로 전달
     log_df = pd.read_excel(DIARY_LOG_PATH) if os.path.exists(DIARY_LOG_PATH) else pd.DataFrame()
-    return render_template('setting_club_log.html', club_df=club_df.to_html(index=False, classes="table"), log_df=log_df.to_html(index=False, classes="table"))
+    
+    # 최신순으로 정렬
+    if not log_df.empty and '기록일시' in log_df.columns:
+        log_df = log_df.sort_values(by='기록일시', ascending=False)
+    
+    logs = log_df.to_dict('records')
+    
+    return render_template('setting_club_log.html', club_df=club_df_html, logs=logs)
+    # return render_template('setting_club_log.html', club_df=club_df.to_html(index=False, classes="table"), log_df=log_df.to_html(index=False, classes="table"))
 
+@app.route('/setting/delete_log', methods=['POST'])
+def delete_log_entry():
+    """ 활동 이력 삭제 라우트 """
+    timestamp_str = request.form.get('timestamp')
+    clubname_str = request.form.get('club_name')
+    if not timestamp_str:
+        flash("삭제할 항목을 식별할 수 없습니다.", "error")
+        return redirect(url_for('setting_club_log'))
+
+    if not os.path.exists(DIARY_LOG_PATH):
+        flash("로그 파일을 찾을 수 없습니다.", "error")
+        return redirect(url_for('setting_club_log'))
+
+    try:
+        df = pd.read_excel(DIARY_LOG_PATH)
+        
+        # 1. '기록일시' 컬럼을 pandas datetime으로 읽어들인 후,
+        #    비교를 위해 다시 '%Y-%m-%d %H:%M:%S' 포맷의 문자열로 변환합니다.
+        #    (Excel 저장/읽기 과정에서 형식이 바뀔 수 있으므로, 문자열로 통일하여 비교)
+        df['기록일시_str_compare'] = pd.to_datetime(df['기록일시'], errors='coerce').dt.strftime('%Y-%m-%d %H:%M:%S')
+
+        # 2. 폼에서 전송된 timestamp 문자열과 일치하지 *않는* 행만 남깁니다.
+        rows_to_keep = (df['기록일시_str_compare'] != timestamp_str)
+        
+        # 3. 만약 '기록일시'를 파싱하지 못해 NaT/None이 된 경우(오래된 데이터 등),
+        #    rows_to_keep이 False가 될 수 있으므로, 원본 '기록일시'가 비어있는 경우도 보존합니다.
+        #    (더 안전한 방법: rows_to_keep = (df['기록일시_str_compare'] != timestamp_str) | (df['기록일시_str_compare'].isna()))
+        filtered_df = df[rows_to_keep]
+
+        # 4. 비교에 사용한 임시 컬럼을 삭제합니다.
+        filtered_df = filtered_df.drop(columns=['기록일시_str_compare'])
+
+        # 5. .dt.date를 사용하여 'YYYY-MM-DD' 형식의 Python date 객체로 변환
+        if '활동 일자' in filtered_df.columns:
+            filtered_df['활동 일자'] = pd.to_datetime(filtered_df['활동 일자'], errors='coerce').dt.date
+
+        # 6. 필터링된 데이터프레임을 다시 엑셀 파일로 덮어씁니다.
+        filtered_df.to_excel(DIARY_LOG_PATH, index=False)
+        
+        flash(f"활동 이력({clubname_str} - {timestamp_str})이 성공적으로 삭제되었습니다.", "success")
+        
+    except Exception as e:
+        print(f"Error deleting log entry: {e}")
+        flash(f"삭제 중 오류가 발생했습니다: {e}", "error")
+
+    return redirect(url_for('setting_club_log'))
 
 @app.route('/setting/club_list', methods=['GET', 'POST'])
 def setting_club_list():
