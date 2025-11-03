@@ -3,6 +3,7 @@ from io import BytesIO
 import pandas as pd
 import os
 from datetime import datetime, date, timedelta
+import re
 
 app = Flask(__name__)
 app.secret_key = 'Skfma20601318'
@@ -12,18 +13,62 @@ DATA_FOLDER = 'data'
 CLUB_LIST_PATH = os.path.join(DATA_FOLDER, 'club_list.xlsx')
 DIARY_LOG_PATH = os.path.join(DATA_FOLDER, 'club_log.xlsx')
 WEEKLY_LOG_PATH = os.path.join(DATA_FOLDER, "club_weekly.xlsx")
+ADMIN_PASSWORD = 'skfma2013'
 
-# club_list.xlsx를 딕셔너리로 로딩
-club_df = pd.read_excel(CLUB_LIST_PATH)
-club_df.columns = club_df.columns.str.strip()
+def get_club_dict():
+    """ club_list.xlsx를 읽어 딕셔너리로 반환합니다. 파일이 없으면 빈 딕셔너리를 반환합니다. """
+    if os.path.exists(CLUB_LIST_PATH):
+        try:
+            club_df = pd.read_excel(CLUB_LIST_PATH)
+            club_df.columns = club_df.columns.str.strip()
+            return dict(zip(club_df['동아리 명'], club_df['동아리 분야']))
+        except Exception as e:
+            print(f"Error reading {CLUB_LIST_PATH}: {e}")
+            return {}
+    return {}
+
+# --- 정렬을 위한 헬퍼 함수 ---
+def is_korean(char):
+    """ 한글 문자인지 확인합니다. """
+    return re.match("^[가-힣]$", char) is not None
+
+def sort_key_korean_first(club_name):
+    """ 정렬 키를 생성합니다. (한글 우선) """
+    if not club_name or not isinstance(club_name, str):
+        return (2, club_name) # 예외 처리
+    first_char = club_name[0]
+    if is_korean(first_char):
+        return (0, club_name)
+    else:
+        return (1, club_name)
+
+def load_log():
+    # 새 양식의 컬럼 정의
+    log_columns = ['분야', '동아리 명', '활동 날짜', '시작 시간', '종료 시간', '참가자', '활동 내용', '작성자', '총 인원수', '초등 남', '초등 여', '중등 남', '중등 여', '고등 남', '고등 여', '후기 남', '후기 여', '작성일시']
+    if not os.path.exists(DIARY_LOG_PATH):
+        df = pd.DataFrame(columns=log_columns)
+        df.to_excel(DIARY_LOG_PATH, index=False)
+        return df
+    
+    df = pd.read_excel(DIARY_LOG_PATH, dtype=str)
+    df.fillna('', inplace=True)
+    # 기존 파일에 새 컬럼이 없을 경우 추가 (호환성 유지)
+    for col in log_columns:
+        if col not in df.columns:
+            df[col] = ''
+    return df
 
 #print("엑셀 컬럼명:", club_df.columns.tolist())  # 디버깅용
-club_dict = dict(zip(club_df['동아리 명'], club_df['동아리 분야']))
+#club_dict = dict(zip(club_df['동아리 명'], club_df['동아리 분야']))
 
 # 초기 페이지: 활동일지 작성 폼
 @app.route('/', methods=['GET', 'POST'])
 def main():
-    club_names = club_df['동아리 명'].tolist()
+    club_dict = get_club_dict()
+    if not club_dict:
+        flash("동아리 목록 파일을 찾을 수 없거나 비어있습니다. 'data/club_list.xlsx' 파일을 확인해주세요.", category = "error")
+    
+    club_names = sorted(list(club_dict.keys()), key=sort_key_korean_first)
 
     if request.method == 'POST':
         # 입력값 수집
@@ -124,13 +169,6 @@ def success_popup():
 
     return render_template('success_popup.html', club=club, category=category, date=date, people=people)
 
-# 설정 페이지
-@app.route('/setting')
-def setting():
-    club_df = pd.read_excel(CLUB_LIST_PATH) if os.path.exists(CLUB_LIST_PATH) else pd.DataFrame()
-    log_df = pd.read_excel(DIARY_LOG_PATH) if os.path.exists(DIARY_LOG_PATH) else pd.DataFrame()
-    return render_template('setting.html', club_df=club_df.to_html(index=False), log_df=log_df.to_html(index=False))
-
 # 로그 파일 다운로드 받기
 @app.route("/download_log")
 def download_log():
@@ -159,7 +197,93 @@ def download_log():
     except Exception as err:
         print(err)
         return Response(str(err), status=500)
+
+# --- 관리자 페이지 ---
+@app.route('/setting', methods=['GET', 'POST'])
+def setting_login():
+    if request.method == 'POST':
+        if request.form.get('password') == ADMIN_PASSWORD:
+            session['logged_in'] = True
+            return redirect(url_for('setting_main'))
+        else:
+            flash('비밀번호가 틀렸습니다.', category="error")
+    return render_template('setting_login.html')
+
+@app.route('/setting/logout')
+def setting_logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('setting_login'))
+
+@app.route('/setting/main')
+def setting_main():
+    if not session.get('logged_in'):
+        return redirect(url_for('setting_login'))
+    """ 관리자 대시보드 페이지 """
+    log_df = pd.read_excel(DIARY_LOG_PATH)
+    today_str = datetime.now().strftime('%Y-%m-%d')
     
+    if not log_df.empty and '활동 일자' in log_df.columns:
+        today_activity_count = log_df[log_df['활동 일자'] == today_str].shape[0]
+        recent_logs = log_df.tail(5)[::-1]
+    else:
+        today_activity_count = 0
+        recent_logs = []
+
+    total_club_count = len(get_club_dict())
+    return render_template('setting_dashboard.html', today_activity_count=today_activity_count, total_club_count=total_club_count, recent_logs=recent_logs.to_html(index=False, classes="table"))
+
+@app.route('/setting/club_log')
+def setting_club_log():
+    if not session.get('logged_in'):
+        return redirect(url_for('setting_login'))
+    """ 동아리 활동 이력 페이지 """
+    club_df = pd.read_excel(CLUB_LIST_PATH) if os.path.exists(CLUB_LIST_PATH) else pd.DataFrame()
+    log_df = pd.read_excel(DIARY_LOG_PATH) if os.path.exists(DIARY_LOG_PATH) else pd.DataFrame()
+    return render_template('setting_club_log.html', club_df=club_df.to_html(index=False, classes="table"), log_df=log_df.to_html(index=False, classes="table"))
+
+
+@app.route('/setting/club_list', methods=['GET', 'POST'])
+def setting_club_list():
+    if not session.get('logged_in'):
+        return redirect(url_for('setting_login'))
+    """ 동아리 일람 및 관리(추가/삭제) 페이지 """
+    if not os.path.exists(CLUB_LIST_PATH):
+        flash("동아리 목록 파일(club_list.xlsx)을 찾을 수 없습니다.", category = "error")
+        return render_template('setting_club_list.html', clubs=[])
+
+    club_df = pd.read_excel(CLUB_LIST_PATH)
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'delete':
+            club_to_delete = request.form.get('club_name')
+            club_df = club_df[club_df['동아리 명'] != club_to_delete]
+            flash('동아리 정보가 성공적으로 삭제되었습니다.', category = "success")
+        
+        elif action == 'add':
+            new_name = request.form.get('new_club_name')
+            new_category = request.form.get('new_club_category')
+            if new_name and new_category and new_name not in club_df['동아리 명'].values:
+                new_row = pd.DataFrame([{'동아리 명': new_name, '동아리 분야': new_category}])
+                club_df = pd.concat([club_df, new_row], ignore_index=True)
+                flash(f"'{new_name}' 동아리 정보가 성공적으로 추가되었습니다.", category = "success")
+            else:
+                flash("동아리 이름이 비어있거나 이미 존재합니다.", category = "error")
+
+        # 정렬 후 저장
+        club_df['sort_key'] = club_df['동아리 명'].apply(sort_key_korean_first)
+        sorted_df = club_df.sort_values(by='sort_key').drop(columns=['sort_key'])
+        sorted_df.to_excel(CLUB_LIST_PATH, index=False)
+        return redirect(url_for('setting_club_list'))
+
+    # GET 요청 시 정렬해서 보여주기
+    club_df['sort_key'] = club_df['동아리 명'].apply(sort_key_korean_first)
+    sorted_df = club_df.sort_values(by='sort_key')
+    clubs = sorted_df.to_dict('records')
+        
+    return render_template('setting_club_list.html', clubs=clubs)
+
 def load_club_list():
     if not os.path.exists(CLUB_LIST_PATH):
         # 최소 스키마 생성
@@ -218,19 +342,20 @@ def within_submission_window(now):
 # ------- 주간 입력 페이지 -------
 @app.route("/weekly", methods=["GET", "POST"])
 def weekly():
-    now = datetime.now()
     clubs_df = load_club_list()
     # 화면용: 동아리명 리스트
-    club_names = clubs_df["동아리 명"].dropna().tolist()
+    club_names = sorted(list(club_dict.keys()), key=sort_key_korean_first)
 
     # 주차 헤더 데이터 (2025년 N주차 + 날짜 라벨)
-    year, week_num, days = get_week_header(now)
-    week_label = f"{year}년 {week_num}주차"
-    day_labels = [d.strftime("%m-%d") for d in days]  # "09-01" 형식
+    today = date.today()
+    start_of_week = today - timedelta(days=today.weekday())
+    end_of_week = start_of_week + timedelta(days=6)
+    week_label = f"{start_of_week.year}년 {start_of_week.strftime('%U')}주차"
+    day_labels = [(start_of_week + timedelta(days=i)).day for i in range(7)]
 
     if request.method == "POST":
         if not within_submission_window(now):
-            flash("현재는 입력 가능 기간(토요일~금요일)이 아닙니다.", "error")
+            flash("현재는 입력 가능 기간(토요일~금요일)이 아닙니다.", category = "error")
             return redirect(url_for("weekly"))
 
         club_name = request.form.get("club_name", "").strip()
@@ -240,18 +365,18 @@ def weekly():
         # 유효성: 동아리/분야 조회 & 인증번호 대조
         row = clubs_df[clubs_df["동아리 명"] == club_name]
         if row.empty:
-            flash("동아리 명을 선택해 주세요.", "error")
+            flash("동아리 명을 선택해 주세요.", category = "error")
             return redirect(url_for("weekly"))
 
         real_auth = str(row.iloc[0]["인증번호"]).zfill(4)
         category  = row.iloc[0]["동아리 분야"] if "동아리 분야" in row.columns else ""
 
         if not (auth_code_input.isdigit() and len(auth_code_input) == 4):
-            flash("동아리 인증번호는 숫자 4자리여야 합니다.", "error")
+            flash("동아리 인증번호는 숫자 4자리여야 합니다.", category = "error")
             return redirect(url_for("weekly"))
 
         if auth_code_input != real_auth:
-            flash("동아리 인증번호가 올바르지 않습니다.", "error")
+            flash("동아리 인증번호가 올바르지 않습니다.", category = "error")
             return redirect(url_for("weekly"))
 
         # 저장
