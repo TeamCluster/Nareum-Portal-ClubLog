@@ -1,0 +1,10 @@
+chore: NAS <-> 원격 저장소 연결, app.py 인코딩 오류 해결
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+# Your branch is up to date with 'origin/main'.
+#
+# Changes to be committed:
+#	modified:   app.py
+#

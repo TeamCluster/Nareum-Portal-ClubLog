@@ -6,8 +6,21 @@ body {
     padding: 0;
 }
 
+.login-container { 
+    margin: 2rem auto;
+    padding: 2rem;
+    max-width: 450px; 
+    text-align: center;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+input{ width: 100%; padding: 0.8rem 1rem; border: 1px solid #e9ecef;
+    border-radius: 8px; font-size: 1rem; 
+    box-sizing: border-box;}
+
 .setting-container {
-    max-width: 1500px;
+    max-width: 1200px;
     margin: 40px auto;
     background: #fff;
     padding: 30px 40px;
@@ -31,46 +44,35 @@ body {
     padding-bottom: 5px;
 }
 
-.table-list {
+.table-list, .table-log {
     overflow-x: auto;
     margin-bottom: 30px;
 }
 
-.table-list table {
+.table-list table, .table-log table {
     border-collapse: collapse;
     width: 50%;
     min-width: 235px;
 
     margin-bottom: 20px;
 }
+/*.table-log table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 20px;
+}*/
 
-.table-list th, .table-list td {
+.table-list th, .table-list td, .table-log th, .table-log td {
     border: 1px solid #ccc;
     padding: 8px 12px;
     text-align: left;
+    white-space: nowrap;
 }
 
 .table-list th {
     background-color: #f0f8ff;
     font-weight: bold;
     color: #333;
-}
-
-.table-log {
-    overflow-x: auto;
-    margin-bottom: 30px;
-}
-
-.table-log table {
-    border-collapse: collapse;
-    width: 100%;
-    margin-bottom: 20px;
-}
-
-.table-log th, .table-log td {
-    border: 1px solid #ccc;
-    padding: 8px 12px;
-    text-align: left;
 }
 
 .table-log th {
@@ -96,3 +98,56 @@ body {
 .setting-container a button:hover {
     background-color: #254fa1;
 }
+
+/* 동아리 관리 페이지 스타일 */
+.btn-delete, .btn-add {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-family: 'NFont', sans-serif;
+    font-size: 14px;
+}
+
+.btn-delete {
+    background-color: #ff4d4d;
+    color: white;
+}
+.btn-delete:hover {
+    background-color: #cc0000;
+}
+
+.btn-add {
+    background-color: #3366cc;
+    color: white;
+}
+.btn-add:hover {
+    background-color: #254fa1;
+}
+.submit-btn { width: 100%; padding: 1rem; margin-top: 2rem; border: none; border-radius: 8px; background-color: #3366cc; color: #ffffff; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: background-color 0.3s; }
+.submit-btn:hover { background-color: #254fa1; }
+.submit-btn:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+
+.form-container-setting {
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+.form-row-setting {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+.form-row-setting input[type="text"] {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/* --- 공통 컴포넌트 (플래시 메시지, 반응형) --- */
+.flash-message { padding: 1rem; margin-bottom: 1rem; border-radius: 8px; font-weight: 600; }
+.flash-message.error { background-color: #fdeded; color: #c0392b; }
+.flash-message.success { background-color: #e8f8f5; color: #16a085; }

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}주간 입력 설정{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/club-diary.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/club-setting.css') }}">
+<div class="setting-container" style="max-width: 980px; margin: 0 auto;">
+  <h2>주간 입력 설정</h2>
+  <a href="{{ url_for('download_weekly') }}"><button>동아리 주간 활동 여부 엑셀파일 저장하기</button></a>
+  <h3 style="margin-top:18px;">동아리 목록 (인증번호 포함)</h3>
+  <div class="table-list">
+    {{ club_table_html | safe }}
+  </div>
+
+  <h3 style="margin-top:24px;">주간 활동 여부 입력 기록</h3>
+  <div class="table-list">
+    {{ weekly_table_html | safe }}
+  </div>
+
+  <p class="helper-text">* 인증번호가 비어있으면 기본값 0000 으로 취급됩니다. <br>
+  * 인증번호 변경은 <code>data/club_list.xlsx</code> 에서 <strong>인증번호</strong> 컬럼을 수정하세요.</p>
+</div>
+
+<style>
+.table-list table{ width:100%; border-collapse:collapse; }
+.table-list th, .table-wrap td{ border-bottom:1px solid #2a2d30; padding:8px 10px; text-align:left;}
+.table-list tr:hover td{ background:#b1b1b1; }
+</style>
+{% endblock %}
