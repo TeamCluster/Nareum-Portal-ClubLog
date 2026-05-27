@@ -418,7 +418,8 @@ footer {
   background-color: #1f2937;
   color: white;
   text-align: center;
-  padding: 40px 20px 140px;
+  padding: 40px 20px 60px;
+  word-break: keep-all;
   /*margin-top: 40px;*/
 }
 

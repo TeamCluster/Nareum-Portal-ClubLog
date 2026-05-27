@@ -13,7 +13,7 @@ DATA_FOLDER = 'data'
 CLUB_LIST_PATH = os.path.join(DATA_FOLDER, 'club_list.xlsx')
 DIARY_LOG_PATH = os.path.join(DATA_FOLDER, 'club_log.xlsx')
 WEEKLY_LOG_PATH = os.path.join(DATA_FOLDER, "club_weekly.xlsx")
-ADMIN_PASSWORD = 'skfma2013'
+ADMIN_PASSWORD = 'didim0550!'
 
 def get_club_dict():
     """ club_list.xlsx를 읽어 딕셔너리로 반환합니다. 파일이 없으면 빈 딕셔너리를 반환합니다. """
