@@ -1,0 +1,6 @@
+Flask==3.0.3
+flask-cors==4.0.1
+# 엑셀 다운로드 기능 (/api/logs/download) 에서만 사용.
+# 평시 데이터 저장/조회는 표준 라이브러리 sqlite3 만 사용합니다.
+pandas==2.2.2
+openpyxl==3.1.5
