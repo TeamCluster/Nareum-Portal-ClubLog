@@ -1,8 +1,24 @@
-# Python cache files
-__pycache__/
-*.py[cod]
-*$py.class
+# 시크릿
+.env
+.env.local
 
-# DB files
-*.db
+# 데이터베이스 (기관 데이터 + 슈퍼 DB의 비밀번호 해시까지 모두 포함)
+db/
 *.sqlite3
+*.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# 가상환경
+venv/
+.venv/
+env/
+
+# 에디터 / OS
+.vscode/
+.idea/
+.DS_Store

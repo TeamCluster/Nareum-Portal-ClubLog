@@ -1,17 +1,17 @@
-"""활동일지(logs 테이블) 관련 데이터 처리.
+"""활동일지(logs 테이블) 관련 데이터 처리 — 멀티테넌트.
 
-엑셀(pandas) 기반에서 SQLite 기반으로 변경되었습니다.
-평소 조회/저장은 순수 SQL, 엑셀 다운로드 시에만 pandas 를 사용합니다.
+각 함수가 slug 를 받아 해당 기관의 DB(db/<slug>.sqlite3) 에 접근합니다.
+평시 조회/저장은 순수 SQL, 엑셀 다운로드 시에만 pandas 를 사용합니다.
 
 응답 dict 의 키는 모두 영문(DB 컬럼명) 입니다.
-한글 헤더로의 매핑은 export_excel() 한 곳에서만 일어납니다.
+한글 헤더 매핑은 export_excel() 에서만 일어납니다.
 """
 from datetime import date, datetime
 from io import BytesIO
 
 import pandas as pd
 
-from db import get_db
+from db import get_place_db
 
 # 엑셀 export 시 영문 컬럼 -> 한글 헤더 매핑 (컬럼 순서도 이걸로 결정)
 EXCEL_HEADERS = {
@@ -44,9 +44,9 @@ def _row_to_dict(row):
 # ----------------------------------------------------------------------
 # 조회
 # ----------------------------------------------------------------------
-def get_logs():
-    """활동일지 전체를 created_at 최신순 dict 리스트로 반환."""
-    db = get_db()
+def get_logs(slug: str):
+    """기관의 활동일지 전체를 created_at 최신순 dict 리스트로 반환."""
+    db = get_place_db(slug)
     rows = db.execute(
         "SELECT * FROM logs ORDER BY created_at DESC"
     ).fetchall()
@@ -56,10 +56,10 @@ def get_logs():
 # ----------------------------------------------------------------------
 # 작성
 # ----------------------------------------------------------------------
-def create_log(data: dict):
+def create_log(slug: str, data: dict):
     """활동일지 한 건 작성. (성공여부, 메시지, 결과dict) 반환.
 
-    data 는 프론트에서 보낸 JSON 으로, 아래 키를 기대합니다.
+    data 는 프론트에서 보낸 JSON. 아래 키를 기대합니다.
       category, club_name, activity_year/month/day,
       start_hour/minute, end_hour/minute,
       participants, author, activity_content,
@@ -96,7 +96,7 @@ def create_log(data: dict):
     if total == 0:
         return False, "총 인원수가 0명일 수 없습니다.", None
 
-    # 오후 시간 보정 (예: '1' 입력 -> 13시). 기존 로직 유지.
+    # 오후 시간 보정 (예: '1' 입력 -> 13시).
     if start_hour < 9:
         start_hour += 12
     if end_hour < 9:
@@ -114,7 +114,7 @@ def create_log(data: dict):
     end_time = f"{end_hour:02d}:{end_minute:02d}"
     created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    db = get_db()
+    db = get_place_db(slug)
     db.execute(
         """
         INSERT INTO logs (
@@ -149,17 +149,14 @@ def create_log(data: dict):
 # ----------------------------------------------------------------------
 # 삭제
 # ----------------------------------------------------------------------
-def delete_log(log_id):
-    """활동일지 한 건 삭제 (id 기준). (성공여부, 메시지) 반환.
-
-    엑셀 시절엔 created_at 문자열로 찾았지만, SQLite 에선 id 로 정확하게.
-    """
+def delete_log(slug: str, log_id):
+    """활동일지 한 건 삭제 (id 기준). (성공여부, 메시지) 반환."""
     try:
         log_id = int(log_id)
     except (TypeError, ValueError):
         return False, "삭제할 항목을 식별할 수 없습니다."
 
-    db = get_db()
+    db = get_place_db(slug)
     cur = db.execute("DELETE FROM logs WHERE id = ?", (log_id,))
     db.commit()
     if cur.rowcount == 0:
@@ -168,11 +165,11 @@ def delete_log(log_id):
 
 
 # ----------------------------------------------------------------------
-# 통계 (관리자 대시보드)
+# 통계 (기관 관리자 대시보드)
 # ----------------------------------------------------------------------
-def get_dashboard_stats(total_club_count: int):
-    """관리자 대시보드용 통계 반환."""
-    db = get_db()
+def get_dashboard_stats(slug: str, total_club_count: int):
+    """기관 관리자 대시보드용 통계 반환."""
+    db = get_place_db(slug)
     today_str = datetime.now().strftime("%Y-%m-%d")
 
     today_count = db.execute(
@@ -195,13 +192,12 @@ def get_dashboard_stats(total_club_count: int):
 # ----------------------------------------------------------------------
 # 엑셀 다운로드
 # ----------------------------------------------------------------------
-def export_excel():
-    """현재 로그를 엑셀 바이트로 반환. (BytesIO, 파일명).
+def export_excel(slug: str):
+    """기관의 로그를 엑셀 바이트로 반환. (BytesIO, 파일명).
 
-    SQLite -> pandas DataFrame -> 한글 헤더로 rename -> xlsx.
-    영문 컬럼명을 한글 헤더로 매핑하는 것이 이 함수의 유일한 책임.
+    SQLite -> pandas -> 한글 헤더로 rename -> xlsx.
     """
-    db = get_db()
+    db = get_place_db(slug)
     columns = ", ".join(EXCEL_HEADERS.keys())
     df = pd.read_sql_query(
         f"SELECT {columns} FROM logs ORDER BY created_at DESC",

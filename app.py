@@ -1,10 +1,17 @@
-﻿"""나름 동아리 활동일지 — Flask JSON API.
+﻿"""나름 동아리 활동일지 — Flask JSON API (멀티테넌트).
 
-기존 app.py 는 render_template 로 HTML 을 직접 그렸지만,
-이 버전은 모든 응답을 JSON 으로 내려주는 순수 API 서버입니다.
-화면(폼/모달/표)은 React(Vite) 프론트엔드가 담당합니다.
+URL 구조:
+  /api/super/...        슈퍼 관리자 (전 기관 총괄)
+  /api/<slug>/...       기관별 (공개 / 관리자)
 
-데이터 저장소: SQLite (db/clublog.sqlite3).
+세션 구조:
+  super_logged_in: bool
+  place_admins: dict[str, bool]    # 기관별 독립 로그인 상태
+                                     예: {"nareum": True, "place01": False}
+
+DB 초기화:
+  db.init_super_db() 가 첫 실행 시 슈퍼 비밀번호와 SECRET_KEY 를 생성.
+  기관 DB(<slug>.sqlite3) 는 place_service.add_place 가 만든다.
 """
 from functools import wraps
 
@@ -13,64 +20,205 @@ from flask_cors import CORS
 
 import config
 import db
-from services import club_service, log_service
+from config import is_valid_slug
+from services import club_service, log_service, place_service, super_service
 
 app = Flask(__name__)
-app.secret_key = config.SECRET_KEY
 
-# 세션 쿠키 설정 — React 개발 서버(다른 포트)에서 쿠키를 주고받기 위함.
-# localhost 끼리는 same-site 라 Lax 로 충분합니다.
-# 운영 환경에서 프론트/백 도메인이 다르면 SAMESITE="None" + SECURE=True 로 바꾸세요.
+# SQLite 초기화 (첫 실행 시 슈퍼 임시 비밀번호 콘솔에 1회 출력)
+db.init_super_db()
+app.secret_key = db.get_secret_key()
+app.teardown_appcontext(db.close_dbs)
+
+# 세션 쿠키 / CORS
 app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_HTTPONLY=True,
 )
-
-# 프론트엔드 주소만 CORS 허용 + 쿠키 동반 허용
 CORS(app, origins=[config.FRONTEND_ORIGIN], supports_credentials=True)
 
-# --- SQLite 초기화 & 요청 종료 훅 --------------------------------------
-db.init_db()                              # 앱 시작 시 테이블 생성 (멱등)
-app.teardown_appcontext(db.close_db)      # 요청 끝나면 커넥션 닫기
 
-
-def login_required(view):
-    """관리자 로그인 여부를 확인하는 데코레이터."""
+# ======================================================================
+#  데코레이터
+# ======================================================================
+def super_required(view):
+    """슈퍼 관리자 로그인 필요."""
     @wraps(view)
     def wrapped(*args, **kwargs):
-        if not session.get("logged_in"):
-            return jsonify({"error": "로그인이 필요합니다."}), 401
+        if not session.get("super_logged_in"):
+            return jsonify({"error": "슈퍼 관리자 로그인이 필요합니다."}), 401
         return view(*args, **kwargs)
     return wrapped
 
 
+def place_required(view):
+    """URL 의 <slug> 가 유효하고 places 테이블에 존재해야 함.
+    그렇지 않으면 404. 로그인 여부는 검증하지 않음 (공개 라우트용)."""
+    @wraps(view)
+    def wrapped(slug, *args, **kwargs):
+        if not is_valid_slug(slug):
+            return jsonify({"error": "잘못된 기관 식별자입니다."}), 404
+        if not place_service.get_place(slug):
+            return jsonify({"error": "기관을 찾을 수 없습니다."}), 404
+        return view(slug, *args, **kwargs)
+    return wrapped
+
+
+def place_admin_required(view):
+    """기관 검증 + 해당 기관 관리자 로그인 필요.
+    place_required + 로그인 확인을 한 곳에서 (데코레이터 합성 대신 명시적으로)."""
+    @wraps(view)
+    def wrapped(slug, *args, **kwargs):
+        if not is_valid_slug(slug):
+            return jsonify({"error": "잘못된 기관 식별자입니다."}), 404
+        if not place_service.get_place(slug):
+            return jsonify({"error": "기관을 찾을 수 없습니다."}), 404
+        if not session.get("place_admins", {}).get(slug):
+            return jsonify({"error": "기관 관리자 로그인이 필요합니다."}), 401
+        return view(slug, *args, **kwargs)
+    return wrapped
+
+
 # ======================================================================
-#  공개 API — 활동일지
+#  슈퍼 관리자 — 인증
 # ======================================================================
-@app.get("/api/clubs")
-def api_clubs():
-    """동아리 목록 반환. (분야 자동 채움용 dict 도 함께 제공)"""
-    clubs = club_service.get_clubs()
+@app.post("/api/super/login")
+def api_super_login():
+    data = request.get_json(silent=True) or {}
+    if super_service.verify_super_password(data.get("password", "")):
+        session["super_logged_in"] = True
+        return jsonify({"ok": True})
+    return jsonify({"ok": False, "message": "비밀번호가 틀렸습니다."}), 401
+
+
+@app.post("/api/super/logout")
+def api_super_logout():
+    session.pop("super_logged_in", None)
+    return jsonify({"ok": True})
+
+
+@app.get("/api/super/session")
+def api_super_session():
+    return jsonify({"logged_in": bool(session.get("super_logged_in"))})
+
+
+@app.post("/api/super/password")
+@super_required
+def api_super_password():
+    data = request.get_json(silent=True) or {}
+    ok, msg = super_service.update_super_password(data.get("new_password", ""))
+    return jsonify({"ok": ok, "message": msg}), (200 if ok else 400)
+
+
+# ======================================================================
+#  슈퍼 관리자 — 기관 CRUD
+# ======================================================================
+@app.get("/api/super/places")
+@super_required
+def api_super_places_list():
+    return jsonify({"places": place_service.get_places()})
+
+
+@app.post("/api/super/places")
+@super_required
+def api_super_places_add():
+    data = request.get_json(silent=True) or {}
+    ok, msg, result = place_service.add_place(
+        data.get("slug", ""),
+        data.get("full_name", ""),
+        data.get("short_name", ""),
+        data.get("password", ""),
+    )
+    return jsonify({"ok": ok, "message": msg, "result": result}), (200 if ok else 400)
+
+
+@app.delete("/api/super/places/<slug>")
+@super_required
+def api_super_places_delete(slug):
+    ok, msg = place_service.delete_place(slug)
+    return jsonify({"ok": ok, "message": msg}), (200 if ok else 404)
+
+
+@app.post("/api/super/places/<slug>/password")
+@super_required
+def api_super_place_password(slug):
+    data = request.get_json(silent=True) or {}
+    ok, msg = place_service.update_place_password(slug, data.get("new_password", ""))
+    return jsonify({"ok": ok, "message": msg}), (200 if ok else 400)
+
+
+# ======================================================================
+#  기관 — 인증
+# ======================================================================
+@app.post("/api/<slug>/admin/login")
+@place_required
+def api_place_login(slug):
+    data = request.get_json(silent=True) or {}
+    if place_service.verify_place_password(slug, data.get("password", "")):
+        # 세션의 place_admins dict 에 해당 slug 만 추가
+        admins = session.get("place_admins", {})
+        admins[slug] = True
+        session["place_admins"] = admins
+        session.modified = True  # dict 내부 변경은 Flask 가 자동 감지 못함
+        return jsonify({"ok": True})
+    return jsonify({"ok": False, "message": "비밀번호가 틀렸습니다."}), 401
+
+
+@app.post("/api/<slug>/admin/logout")
+@place_required
+def api_place_logout(slug):
+    admins = session.get("place_admins", {})
+    admins.pop(slug, None)
+    session["place_admins"] = admins
+    session.modified = True
+    return jsonify({"ok": True})
+
+
+@app.get("/api/<slug>/admin/session")
+@place_required
+def api_place_session(slug):
+    logged_in = bool(session.get("place_admins", {}).get(slug))
+    return jsonify({"logged_in": logged_in})
+
+
+# ======================================================================
+#  기관 — 공개 (일지 작성 페이지)
+# ======================================================================
+@app.get("/api/<slug>/info")
+@place_required
+def api_place_info(slug):
+    """기관 공개 정보 — 로그인 불필요. 일지 작성 페이지 / 헤더에서 사용."""
+    p = place_service.get_place(slug)
+    return jsonify({
+        "slug": p["slug"],
+        "full_name": p["full_name"],
+        "short_name": p["short_name"],
+    })
+
+
+@app.get("/api/<slug>/clubs")
+@place_required
+def api_place_clubs(slug):
+    clubs = club_service.get_clubs(slug)
     return jsonify({
         "clubs": clubs,
         "club_dict": {c["name"]: c["category"] for c in clubs},
     })
 
 
-@app.post("/api/logs")
-def api_create_log():
-    """활동일지 작성."""
+@app.post("/api/<slug>/logs")
+@place_required
+def api_place_logs_create(slug):
     data = request.get_json(silent=True) or {}
-    ok, message, result = log_service.create_log(data)
-    status = 200 if ok else 400
-    return jsonify({"ok": ok, "message": message, "result": result}), status
+    ok, msg, result = log_service.create_log(slug, data)
+    return jsonify({"ok": ok, "message": msg, "result": result}), (200 if ok else 400)
 
 
-@app.get("/api/logs/download")
-def api_download_log():
-    """활동일지 엑셀 다운로드."""
+@app.get("/api/<slug>/logs/download")
+@place_required
+def api_place_logs_download(slug):
     try:
-        output, filename = log_service.export_excel()
+        output, filename = log_service.export_excel(slug)
         return send_file(
             output,
             as_attachment=True,
@@ -82,83 +230,49 @@ def api_download_log():
 
 
 # ======================================================================
-#  관리자 인증
+#  기관 — 관리자 (보호)
 # ======================================================================
-@app.post("/api/admin/login")
-def api_login():
-    """관리자 로그인. 성공 시 세션에 표시."""
+@app.get("/api/<slug>/admin/dashboard")
+@place_admin_required
+def api_place_dashboard(slug):
+    total = len(club_service.get_clubs(slug))
+    return jsonify(log_service.get_dashboard_stats(slug, total))
+
+
+@app.get("/api/<slug>/admin/logs")
+@place_admin_required
+def api_place_admin_logs(slug):
+    return jsonify({"logs": log_service.get_logs(slug)})
+
+
+@app.delete("/api/<slug>/admin/logs")
+@place_admin_required
+def api_place_admin_logs_delete(slug):
     data = request.get_json(silent=True) or {}
-    if data.get("password") == config.ADMIN_PASSWORD:
-        session["logged_in"] = True
-        return jsonify({"ok": True})
-    return jsonify({"ok": False, "message": "비밀번호가 틀렸습니다."}), 401
+    ok, msg = log_service.delete_log(slug, data.get("id", 0))
+    return jsonify({"ok": ok, "message": msg}), (200 if ok else 400)
 
 
-@app.post("/api/admin/logout")
-def api_logout():
-    """관리자 로그아웃."""
-    session.pop("logged_in", None)
-    return jsonify({"ok": True})
+@app.get("/api/<slug>/admin/clubs")
+@place_admin_required
+def api_place_admin_clubs(slug):
+    return jsonify({"clubs": club_service.get_clubs(slug)})
 
 
-@app.get("/api/admin/session")
-def api_session():
-    """현재 로그인 상태 확인 (프론트 라우트 가드용)."""
-    return jsonify({"logged_in": bool(session.get("logged_in"))})
-
-
-# ======================================================================
-#  관리자 API — 보호된 라우트
-# ======================================================================
-@app.get("/api/admin/dashboard")
-@login_required
-def api_dashboard():
-    """관리자 대시보드 통계."""
-    total = len(club_service.get_clubs())
-    return jsonify(log_service.get_dashboard_stats(total))
-
-
-@app.get("/api/admin/logs")
-@login_required
-def api_admin_logs():
-    """전체 활동일지 (최신순)."""
-    return jsonify({"logs": log_service.get_logs()})
-
-
-@app.delete("/api/admin/logs")
-@login_required
-def api_delete_log():
-    """활동일지 한 건 삭제 (id 기준)."""
+@app.post("/api/<slug>/admin/clubs")
+@place_admin_required
+def api_place_admin_clubs_add(slug):
     data = request.get_json(silent=True) or {}
-    ok, message = log_service.delete_log(data.get("id", 0))
-    return jsonify({"ok": ok, "message": message}), (200 if ok else 400)
+    ok, msg = club_service.add_club(slug, data.get("name", ""), data.get("category", ""))
+    return jsonify({"ok": ok, "message": msg}), (200 if ok else 400)
 
 
-@app.get("/api/admin/clubs")
-@login_required
-def api_admin_clubs():
-    """동아리 목록 (관리자용)."""
-    return jsonify({"clubs": club_service.get_clubs()})
-
-
-@app.post("/api/admin/clubs")
-@login_required
-def api_add_club():
-    """동아리 추가."""
+@app.delete("/api/<slug>/admin/clubs")
+@place_admin_required
+def api_place_admin_clubs_delete(slug):
     data = request.get_json(silent=True) or {}
-    ok, message = club_service.add_club(
-        data.get("name", ""), data.get("category", "")
-    )
-    return jsonify({"ok": ok, "message": message}), (200 if ok else 400)
-
-
-@app.delete("/api/admin/clubs")
-@login_required
-def api_delete_club():
-    """동아리 삭제."""
-    data = request.get_json(silent=True) or {}
-    ok, message = club_service.delete_club(data.get("name", ""))
-    return jsonify({"ok": ok, "message": message}), (200 if ok else 400)
+    ok, msg = club_service.delete_club(slug, data.get("name", ""))
+    return jsonify({"ok": ok, "message": msg}), (200 if ok else 400)
 
 
 if __name__ == "__main__":
