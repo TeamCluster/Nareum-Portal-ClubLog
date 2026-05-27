@@ -1,0 +1,33 @@
+# 빌드 컨텍스트에서 제외할 파일들 — 이미지를 작고 깨끗하게 유지.
+
+# 데이터 — 절대 이미지에 들어가면 안 됨 (호스트 마운트로 들어옴)
+db/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# 가상환경
+venv/
+.venv/
+env/
+
+# 시크릿 (혹시 남아있다면)
+.env
+.env.local
+.env.*
+
+# 깃
+.git/
+.gitignore
+
+# 에디터 / OS
+.vscode/
+.idea/
+.DS_Store
+
+# 문서
+README.md
+*.md
