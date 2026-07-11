@@ -13,6 +13,7 @@ DB 초기화:
   db.init_super_db() 가 첫 실행 시 슈퍼 비밀번호와 SECRET_KEY 를 생성.
   기관 DB(<slug>.sqlite3) 는 place_service.add_place 가 만든다.
 """
+import threading
 from functools import wraps
 
 from flask import Flask, jsonify, request, send_file, session
@@ -21,7 +22,13 @@ from flask_cors import CORS
 import config
 import db
 from config import is_valid_slug
-from services import club_service, log_service, place_service, super_service
+from services import (
+    club_service,
+    foundation_sync,
+    log_service,
+    place_service,
+    super_service,
+)
 
 app = Flask(__name__)
 
@@ -128,6 +135,7 @@ def api_super_places_add():
         data.get("full_name", ""),
         data.get("short_name", ""),
         data.get("password", ""),
+        data.get("foundation_sync_url", ""),
     )
     return jsonify({"ok": ok, "message": msg, "result": result}), (200 if ok else 400)
 
@@ -144,6 +152,17 @@ def api_super_places_delete(slug):
 def api_super_place_password(slug):
     data = request.get_json(silent=True) or {}
     ok, msg = place_service.update_place_password(slug, data.get("new_password", ""))
+    return jsonify({"ok": ok, "message": msg}), (200 if ok else 400)
+
+
+@app.post("/api/super/places/<slug>/sync-url")
+@super_required
+def api_super_place_sync_url(slug):
+    """기관의 재단 동기화 URL 등록/수정/해제. 빈 문자열 = 동기화 해제."""
+    data = request.get_json(silent=True) or {}
+    ok, msg = place_service.update_place_sync_url(
+        slug, data.get("foundation_sync_url", "")
+    )
     return jsonify({"ok": ok, "message": msg}), (200 if ok else 400)
 
 
@@ -211,7 +230,37 @@ def api_place_clubs(slug):
 def api_place_logs_create(slug):
     data = request.get_json(silent=True) or {}
     ok, msg, result = log_service.create_log(slug, data)
+    if ok:
+        # 재단 구글시트로 비동기(베스트에포트) 전송 — 활동일지 저장 응답을 막지 않음.
+        _spawn_foundation_sync(slug, data, result)
     return jsonify({"ok": ok, "message": msg, "result": result}), (200 if ok else 400)
+
+
+def _spawn_foundation_sync(slug, data, result):
+    """재단 동기화를 데몬 스레드로 던진다(결과는 콘솔 로깅).
+
+    동기화 URL 은 기관 DB(places.foundation_sync_url)에서 읽는다. DB 접근은
+    Flask 요청 컨텍스트가 필요하므로 스레드를 띄우기 전에 여기서 읽어서
+    값(문자열)만 넘긴다. prog_name 은 config 의 기관별 설정(없으면 기본값).
+    """
+    place = place_service.get_place(slug) or {}
+    url = (place.get("foundation_sync_url") or "").strip()
+    prog_name = (
+        getattr(config, "FOUNDATION_SYNC", {}).get(slug, {}).get("prog_name")
+        or "청소년동아리연합회"
+    )
+
+    def _run():
+        sync_ok, sync_msg = foundation_sync.sync_log(
+            slug, data, result, url, prog_name
+        )
+        if sync_ok is None:
+            return  # 미설정 기관 — 조용히 건너뜀
+        tag = "OK" if sync_ok else "FAIL"
+        app.logger.info("[재단동기화 %s] %s/%s: %s",
+                        tag, slug, result.get("club", ""), sync_msg)
+
+    threading.Thread(target=_run, daemon=True).start()
 
 
 @app.get("/api/<slug>/logs/download")

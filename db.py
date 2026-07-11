@@ -24,6 +24,7 @@ from datetime import datetime
 from flask import g
 from werkzeug.security import generate_password_hash
 
+import config
 from config import DB_FOLDER, SUPER_DB_PATH, place_db_path
 
 
@@ -32,12 +33,13 @@ from config import DB_FOLDER, SUPER_DB_PATH, place_db_path
 # ----------------------------------------------------------------------
 SUPER_SCHEMA = """
 CREATE TABLE IF NOT EXISTS places (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    slug            TEXT    NOT NULL UNIQUE,
-    full_name       TEXT    NOT NULL,     -- 풀네임 (예: 나름청소년활동센터)
-    short_name      TEXT    NOT NULL,     -- 축약별칭 (예: 나름)
-    password_hash   TEXT    NOT NULL,
-    created_at      TEXT    NOT NULL
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug                TEXT    NOT NULL UNIQUE,
+    full_name           TEXT    NOT NULL,     -- 풀네임 (예: 나름청소년활동센터)
+    short_name          TEXT    NOT NULL,     -- 축약별칭 (예: 나름)
+    password_hash       TEXT    NOT NULL,
+    foundation_sync_url TEXT    DEFAULT '',   -- 재단 동기화용 Apps Script /exec URL (빈값=동기화 안 함)
+    created_at          TEXT    NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_places_slug ON places(slug);
@@ -145,6 +147,7 @@ def init_super_db() -> None:
     try:
         conn.executescript(SUPER_SCHEMA)
         _migrate_places_schema(conn)
+        _backfill_sync_url(conn)
 
         # 1) 슈퍼 비밀번호가 없으면 임시값 생성 + 콘솔 출력
         row = conn.execute(
@@ -179,10 +182,13 @@ def _migrate_places_schema(conn: sqlite3.Connection) -> None:
     """옛 스키마에서 새 스키마로 자동 마이그레이션.
 
     옛 스키마: places(name) 만 있음
-    새 스키마: places(full_name, short_name)
+    새 스키마: places(full_name, short_name, foundation_sync_url)
 
     옛 name 값을 두 컬럼에 그대로 복사. 마이그레이션 후엔 운영자가
     슈퍼 페이지에서 short_name 을 짧게 다듬으면 됨.
+
+    ALTER TABLE ADD COLUMN 은 기존 행/데이터를 건드리지 않으므로(새 컬럼은
+    기본값으로 채워짐) 기존 데이터는 손상 없이 그대로 승계된다.
     """
     cols = {r[1] for r in conn.execute("PRAGMA table_info(places)").fetchall()}
 
@@ -190,6 +196,12 @@ def _migrate_places_schema(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE places ADD COLUMN full_name TEXT")
     if "short_name" not in cols:
         conn.execute("ALTER TABLE places ADD COLUMN short_name TEXT")
+
+    # 재단 동기화 URL 컬럼 추가 (값 승계는 _backfill_sync_url 이 담당).
+    if "foundation_sync_url" not in cols:
+        conn.execute(
+            "ALTER TABLE places ADD COLUMN foundation_sync_url TEXT DEFAULT ''"
+        )
 
     # 옛 name 컬럼 데이터 복사 (있을 때만)
     if "name" in cols:
@@ -201,6 +213,35 @@ def _migrate_places_schema(conn: sqlite3.Connection) -> None:
             "UPDATE places SET short_name = name "
             "WHERE short_name IS NULL OR short_name = ''"
         )
+
+
+def _backfill_sync_url(conn: sqlite3.Connection) -> None:
+    """config.FOUNDATION_SYNC 의 URL 을 DB(places.foundation_sync_url)로 1회 승계.
+
+    app_settings 의 'fsync_backfilled' 플래그로 멱등 보장 — startup 마다 또는
+    컬럼이 (크래시 등으로) 먼저 생성된 경우에도 정확히 1회만 실행된다.
+    값이 이미 있는 기관은 건드리지 않으므로, 운영자가 슈퍼 페이지에서 비우거나
+    수정한 값은 보존된다.
+    """
+    done = conn.execute(
+        "SELECT 1 FROM app_settings WHERE key = 'fsync_backfilled'"
+    ).fetchone()
+    if done:
+        return
+
+    for s, c in (getattr(config, "FOUNDATION_SYNC", {}) or {}).items():
+        url = (c or {}).get("url")
+        if url:
+            conn.execute(
+                "UPDATE places SET foundation_sync_url = ? "
+                "WHERE slug = ? AND (foundation_sync_url IS NULL OR foundation_sync_url = '')",
+                (url, s),
+            )
+
+    conn.execute(
+        "INSERT OR REPLACE INTO app_settings (key, value)"
+        " VALUES ('fsync_backfilled', '1')"
+    )
 
 
 def _print_initial_password_banner(password: str) -> None:
